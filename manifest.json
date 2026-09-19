@@ -1,0 +1,30 @@
+{
+  "manifestVersion": 5,
+  "id": "com.kiamm.photoshop-timelapse",
+  "name": "Timelapse",
+  "version": "1.0.0",
+  "main": "index.html",
+  "host": {
+    "app": "PS",
+    "minVersion": "23.3.0"
+  },
+  "entrypoints": [
+    {
+      "type": "panel",
+      "id": "timelapsePanel",
+      "label": {
+        "default": "Timelapse"
+      },
+      "minimumSize": {
+        "width": 240,
+        "height": 360
+      }
+    }
+  ],
+  "requiredPermissions": {
+    "localFileSystem": "request",
+    "launchProcess": {
+      "extensions": [".bat"]
+    }
+  }
+}

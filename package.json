@@ -1,0 +1,22 @@
+{
+  "name": "photoshop-timelapse",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Clip Studio Paint-style timelapse plugin for Photoshop (UXP)",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "build": "npm run typecheck && esbuild src/ts/entrypoints.tsx --bundle --outfile=dist/bundle.js --platform=browser --format=iife --jsx=automatic --external:uxp --external:photoshop",
+    "watch": "esbuild src/ts/entrypoints.tsx --bundle --outfile=dist/bundle.js --platform=browser --format=iife --jsx=automatic --external:uxp --external:photoshop --watch"
+  },
+  "dependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/photoshop": "^25.0.4",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "esbuild": "^0.24.0",
+    "typescript": "^5.4.0"
+  }
+}
