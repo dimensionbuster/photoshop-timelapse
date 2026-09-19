@@ -2,7 +2,7 @@
   "manifestVersion": 5,
   "id": "com.kiamm.photoshop-timelapse",
   "name": "Timelapse",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "main": "index.html",
   "host": {
     "app": "PS",
@@ -25,6 +25,9 @@
     "localFileSystem": "request",
     "launchProcess": {
       "extensions": [".bat"]
+    },
+    "network": {
+      "domains": ["https://api.github.com"]
     }
   }
 }

@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { shell } from "uxp";
 import * as controller from "../core/controller";
 import type { UiState } from "../core/types";
 import { secondsToHHMMSS } from "../core/time-format";
+import { checkForUpdate, type UpdateInfo } from "../core/update-check";
 import { PlaybackPanel } from "./PlaybackPanel";
 import { SettingsPanel } from "./SettingsPanel";
 
@@ -27,11 +29,18 @@ export function App(): React.JSX.Element {
   const [showPlayback, setShowPlayback] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [confirmingReset, setConfirmingReset] = useState(false);
+  const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
 
   useEffect(() => {
     const unsubscribe = controller.subscribe(setState);
     void controller.refreshForActiveDocument();
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    void checkForUpdate().then((info) => {
+      if (info?.available) setUpdateInfo(info);
+    });
   }, []);
 
   useEffect(() => {
@@ -139,6 +148,15 @@ export function App(): React.JSX.Element {
 
   return (
     <div id="app">
+      {updateInfo ? (
+        <div
+          id="update-banner"
+          className="update-banner"
+          onClick={() => void shell.openExternal(updateInfo.releaseUrl)}
+        >
+          v{updateInfo.latestVersion} 사용 가능 (현재 v{updateInfo.currentVersion}) — 클릭해서 보기
+        </div>
+      ) : null}
       <div id="doc-name" className="doc-name">
         {state.docName || "(저장된 문서 없음)"}
       </div>

@@ -21,10 +21,15 @@ jobs:
         id: version
         run: echo "version=$(node -p "require('./package.json').version")" >> "$GITHUB_OUTPUT"
 
-      - name: Check if tag exists
+      - name: Check if release exists
         id: check_tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if git rev-parse "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
+          # draft releases don't push an actual git tag ref until published,
+          # so check via the GitHub API (includes drafts) instead of `git
+          # rev-parse` against a tag name.
+          if gh release view "v${{ steps.version.outputs.version }}" >/dev/null 2>&1; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
@@ -51,4 +56,5 @@ jobs:
           gh release create "v${{ steps.version.outputs.version }}" \
             "photoshop-timelapse-v${{ steps.version.outputs.version }}.zip" \
             --title "v${{ steps.version.outputs.version }}" \
-            --generate-notes
+            --generate-notes \
+            --draft
