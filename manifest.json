@@ -24,6 +24,7 @@
   "requiredPermissions": {
     "localFileSystem": "request",
     "launchProcess": {
+      "schemes": ["https"],
       "extensions": [".bat"]
     },
     "network": {

@@ -152,7 +152,11 @@ export function App(): React.JSX.Element {
         <div
           id="update-banner"
           className="update-banner"
-          onClick={() => void shell.openExternal(updateInfo.releaseUrl)}
+          onClick={() =>
+            void shell
+              .openExternal(updateInfo.releaseUrl)
+              .catch((e) => console.error("openExternal failed:", e))
+          }
         >
           v{updateInfo.latestVersion} 사용 가능 (현재 v{updateInfo.currentVersion}) — 클릭해서 보기
         </div>

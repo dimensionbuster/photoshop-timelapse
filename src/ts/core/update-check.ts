@@ -35,7 +35,10 @@ function isNewer(latest: string, current: string): boolean {
 export async function checkForUpdate(): Promise<UpdateInfo | null> {
   try {
     const res = await fetch(RELEASES_API_URL);
-    if (!res.ok) return null;
+    if (!res.ok) {
+      console.warn(`checkForUpdate: ${RELEASES_API_URL} -> ${res.status}`);
+      return null;
+    }
     const data = (await res.json()) as { tag_name?: string; html_url?: string };
     if (!data.tag_name || !data.html_url) return null;
 
@@ -46,9 +49,11 @@ export async function checkForUpdate(): Promise<UpdateInfo | null> {
       latestVersion,
       releaseUrl: data.html_url,
     };
-  } catch {
-    // offline, rate-limited, or GitHub unreachable — fail silently, this is
-    // a best-effort notice, not a required part of the app flow.
+  } catch (e) {
+    // offline, rate-limited, or GitHub unreachable — fail silently to the
+    // user (this is a best-effort notice, not a required part of the app
+    // flow), but log so it's visible in the UDT/DevTools console.
+    console.error("checkForUpdate failed:", e);
     return null;
   }
 }
