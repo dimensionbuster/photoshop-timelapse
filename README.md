@@ -25,7 +25,7 @@ TypeScript + React(18) + esbuild. UI는 `src/ts/ui/`, PS/UXP를 직접 다루는
 ### 2. 저장소 클론 & 빌드
 
 ```
-git clone https://github.com/kimkihwa/photoshop-timelapse.git
+git clone https://github.com/dimensionbuster/photoshop-timelapse.git
 cd photoshop-timelapse
 npm install
 npm run typecheck  # tsc --noEmit — 수정할 때마다 실행
