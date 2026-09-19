@@ -37,6 +37,20 @@ body {
   max-width: 100%;
 }
 
+.update-banner {
+  font-size: 11px;
+  color: #cfe8ff;
+  background: #2b4a6b;
+  border: 1px solid #3a6a9a;
+  border-radius: 5px;
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.update-banner:hover {
+  background: #325a80;
+}
+
 .doc-name {
   font-weight: 600;
   overflow: hidden;

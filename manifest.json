@@ -25,6 +25,9 @@
     "localFileSystem": "request",
     "launchProcess": {
       "extensions": [".bat"]
+    },
+    "network": {
+      "domains": ["https://api.github.com"]
     }
   }
 }
