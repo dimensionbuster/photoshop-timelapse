@@ -5,6 +5,7 @@
   "description": "Clip Studio Paint-style timelapse plugin for Photoshop (UXP)",
   "scripts": {
     "typecheck": "tsc --noEmit",
+    "version": "node scripts/sync-manifest-version.js && git add manifest.json",
     "build": "npm run typecheck && esbuild src/ts/entrypoints.tsx --bundle --outfile=dist/bundle.js --platform=browser --format=iife --jsx=automatic --external:uxp --external:photoshop",
     "watch": "esbuild src/ts/entrypoints.tsx --bundle --outfile=dist/bundle.js --platform=browser --format=iife --jsx=automatic --external:uxp --external:photoshop --watch"
   },
