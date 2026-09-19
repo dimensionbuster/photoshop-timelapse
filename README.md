@@ -1,55 +1,77 @@
-# Photoshop Timelapse (UXP)
+# Photoshop Timelapse
 
-클립스튜디오 페인트의 타임랩스 기능을 포토샵에서 재현하는 UXP 플러그인.
-TypeScript + React(18) + esbuild. UI는 `src/ts/ui/`, PS/UXP를 직접 다루는 로직은 프레임워크 무관하게 `src/ts/core/`에 분리.
+포토샵에서 작업하는 과정을 자동으로 기록했다가, 나중에 영상(MP4)으로 뽑아주는 플러그인입니다.
+클립스튜디오 페인트에 있는 "타임랩스" 기능을 포토샵에서도 쓸 수 있게 만든 것이라고 생각하시면 됩니다.
 
-## 기능
+- 그림 그리는 동안 자동으로 작업 과정을 기록
+- 실제로 손을 움직인 시간만 정확하게 집계 (딴짓하며 멍 때린 시간은 제외)
+- 다 그린 뒤 영상으로 내보내서 유튜브/SNS에 업로드
 
-- **타임랩스 시작**: 저장된 문서 기준으로 히스토리 변경을 감지해 기록 시작.
-- **실제 누적 작업시간**: 히스토리 이벤트 간 간격이 60초 이하일 때만 누적 (유휴시간 제외), `HH:MM:SS`로 표시.
-- **다시보기**: 저장된 프레임을 슬라이더로 스크럽하거나 재생.
-- **영상 내보내기(MP4)**: 번들된 `ffmpeg.exe`를 `.bat` + `shell.openPath`로 실행해 프레임 시퀀스를 MP4로 인코딩.
-- **기록 초기화**: 현재 문서의 누적시간/프레임/메타정보 전부 삭제.
-- **내보내기 후 캐시 자동 삭제**: 내보내기 성공 시 프레임 이미지 + 누적시간/프레임수를 초기화하고 바로 다음 구간 기록을 이어감 (내보낸 이력은 `exportHistory`에 남음).
+설치는 아래 순서대로 따라 하시면 됩니다.
 
-세부 설계는 `C:\Users\kiamm\.claude\plans\photoshop-federated-codd.md` 참고.
+## 무엇이 필요한가요?
 
-## 설치
+1. **포토샵** (2022년 이후 버전, 정확히는 23.3 이상)
+2. **Adobe UXP Developer Tool** — 이 플러그인처럼 아직 Adobe 공식 마켓(Creative Cloud 안의 "플러그인" 탭)에 등록되지 않은 플러그인을 설치할 때 쓰는 Adobe의 공식 도구입니다. 무료입니다.
+3. **ffmpeg** — 기록한 그림들을 MP4 영상으로 변환해주는 프로그램입니다. *영상으로 내보낼 때만* 필요하고, 그냥 기록하고 다시보기만 할 거라면 없어도 됩니다.
 
-### 1. 준비물
+## 설치 방법
 
-1. **Adobe UXP Developer Tool** — Creative Cloud 앱에서 검색 설치, 또는 `developer.adobe.com/photoshop/uxp`에서 다운로드.
-2. **ffmpeg.exe** — `ffmpeg/README.txt` 참고해서 `ffmpeg/ffmpeg.exe`에 배치 (저장소에는 포함 안 됨, `.gitignore` 처리됨).
-3. Node.js (이미 설치돼 있음: v22.21.1).
+### 1단계. 플러그인 파일 내려받기
 
-### 2. 저장소 클론 & 빌드
+1. [Releases 페이지](https://github.com/dimensionbuster/photoshop-timelapse/releases)로 이동합니다.
+2. 가장 위에 있는 최신 버전(예: `v1.1.0`)을 클릭합니다.
+3. 아래쪽 "Assets" 목록에서 `photoshop-timelapse-vX.X.X.zip` 파일을 내려받습니다.
+4. 받은 zip 파일의 압축을 원하는 폴더에 풉니다. (예: 바탕화면에 `photoshop-timelapse` 폴더 하나 만들어서 그 안에 풀기 — 이 폴더는 나중에 옮기거나 지우면 플러그인도 같이 사라지니, 잘 기억해둘 위치에 두세요.)
 
-```
-git clone https://github.com/dimensionbuster/photoshop-timelapse.git
-cd photoshop-timelapse
-npm install
-npm run typecheck  # tsc --noEmit — 수정할 때마다 실행
-npm run build      # typecheck 통과 후 esbuild 번들 (dist/bundle.js)
-```
+### 2단계. Adobe UXP Developer Tool 설치하기
 
-`photoshop`/`uxp` 모듈 타입: `photoshop`은 `@types/photoshop`(DefinitelyTyped), `uxp`는 공식 타입 패키지가 없어서 실제로 쓰는 범위만 `src/ts/types/uxp.d.ts`에 직접 선언.
+1. Creative Cloud 앱을 열고 왼쪽 메뉴에서 "스톡 및 마켓플레이스" 또는 검색창에 **"UXP Developer Tool"** 을 검색해서 설치합니다.
+2. 설치 후 실행하면 빈 목록이 있는 작은 프로그램 창이 뜹니다.
 
-### 3. UXP Developer Tool에서 플러그인 로드
+### 3단계. 플러그인 불러오기
 
-1. "Add Plugin" → 이 폴더의 `manifest.json` 선택.
-2. Photoshop 실행 중인 상태에서 "Load".
-3. Photoshop 메뉴 Plugins > Timelapse 패널 열기.
+1. 포토샵을 실행해둡니다.
+2. UXP Developer Tool 창에서 **"Add Plugin"** 버튼을 누릅니다.
+3. 1단계에서 압축을 푼 폴더 안의 `manifest.json` 파일을 선택합니다.
+4. 목록에 플러그인이 추가되면, 오른쪽의 **"Load"** 버튼을 누릅니다.
+5. 포토샵 메뉴에서 **Plugins(플러그인) > Timelapse**를 클릭하면 패널이 열립니다.
 
-### 4. 개발 모드
+이제 설치가 끝났습니다. (다음에 포토샵을 켤 때는 3단계의 "Add Plugin"은 다시 할 필요 없고, UXP Developer Tool을 켜서 "Load"만 눌러주면 됩니다.)
 
-```
-npm run watch  # esbuild --watch (타입체크는 안 됨, 저장 시 번들만 재생성)
-```
+### 4단계 (선택). 영상 내보내기용 ffmpeg 준비하기
 
-`npm run watch` 켜두고 UDT의 "Watch" 옵션도 켜면 저장할 때마다 자동 리로드됨.
+기록한 그림을 MP4 영상으로 내보내려면 `ffmpeg.exe`라는 프로그램 파일 하나가 더 필요합니다. 라이선스 문제로 플러그인 안에 미리 넣어둘 수 없어서, 직접 받아서 넣어주셔야 합니다.
 
-## 알려진 제약 (v1)
+1. 아래 두 곳 중 아무 곳에서나 **Windows용 "static(정적)" 빌드**를 받습니다.
+   - [gyan.dev/ffmpeg/builds](https://www.gyan.dev/ffmpeg/builds/) → "release essentials" 또는 "release full" (파일 이름에 "shared"가 들어간 것은 피하세요)
+   - [github.com/BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds/releases) → "win64-gpl.zip" 처럼 이름에 "shared"가 없는 것
+2. 받은 압축파일 안의 `bin` 폴더에서 **`ffmpeg.exe` 파일 하나만** 꺼냅니다.
+3. 1단계에서 압축을 푼 플러그인 폴더 안에 있는 `ffmpeg` 폴더에 그 파일을 넣습니다. (`ffmpeg/ffmpeg.exe` 형태가 되어야 합니다.)
 
-- 저장된 적 없는 문서는 기록 불가 (Start 버튼 비활성).
-- 한 번에 활성 문서 1개만 기록 (멀티 문서 동시 기록은 v2 과제).
-- 매 히스토리 상태마다 프레임을 캡처하므로 오래 작업할수록 데이터 폴더 용량이 커짐 — 영상 내보내기 후 자동 정리됨. (한때 캡처를 1초로 스로틀링했었는데, `executeAsModal`에 `interactive: true`를 넣은 뒤로는 안 그래도 커서/버튼 문제가 없어서 다시 뺐음 — 브러시 연타로 문제 재발하면 `history-listener.ts`에 스로틀 다시 넣을 것.)
+> 확인 팁: 제대로 받았다면 `ffmpeg.exe` 파일 용량이 70~150MB 정도 됩니다. 수백 KB~몇 MB 밖에 안 된다면 잘못된(shared) 버전을 받은 것이니 다시 받아주세요.
+
+이 파일을 안 넣어도 기록/다시보기는 문제없이 되고, "영상 내보내기" 버튼을 눌렀을 때만 안내 메시지가 뜹니다.
+
+## 사용 방법
+
+플러그인 패널을 열면 이런 버튼들이 있습니다.
+
+- **타임랩스 시작**: 지금부터 작업 과정을 기록하기 시작합니다. (문서를 한 번이라도 저장한 적이 있어야 눌러집니다 — 먼저 `Ctrl+S`로 저장해주세요.)
+- **정지**: 기록을 잠시 멈춥니다. (기록된 내용은 그대로 남아있고, 다시 "타임랩스 시작"을 누르면 이어서 기록됩니다.)
+- **다시보기**: 지금까지 기록된 장면들을 슬라이더로 넘겨보거나 재생해볼 수 있습니다.
+- **영상 내보내기(MP4)**: 지금까지 기록된 내용을 하나의 MP4 동영상 파일로 만듭니다. (ffmpeg 필요, 위 4단계 참고)
+- **기록 초기화**: 지금 문서에 쌓인 기록을 전부 지우고 처음부터 다시 시작합니다. 한 번 지우면 되돌릴 수 없으니 신중하게 눌러주세요.
+
+화면에는 실제로 작업한 시간(예: `01:23:45`)과, 화면 앞에 켜져 있었던 전체 시간 중 실제로 손을 움직이지 않은 "논 시간"도 같이 표시됩니다.
+
+
+## 새 버전이 나오면?
+
+플러그인을 새로 열 때마다 최신 버전이 있는지 자동으로 확인합니다. 새 버전이 있으면 패널 위쪽에 파란 알림 배너가 뜨는데, 클릭하면 다운로드 페이지가 브라우저로 열립니다. 새 zip을 받아서 기존 폴더 내용물을 덮어쓰고, UXP Developer Tool에서 플러그인을 다시 Load 해주시면 됩니다. (자동으로 설치까지 되지는 않아요 — 직접 받아서 교체해야 합니다.)
+
+## 알아두면 좋은 점
+
+- 저장한 적이 없는 새 문서는 기록을 시작할 수 없습니다. 먼저 한 번 저장해주세요.
+- 한 번에 하나의 문서만 기록할 수 있습니다. 여러 그림을 동시에 작업 중이라면, 지금 기록하고 싶은 문서를 활성화한 상태에서 시작해주세요.
+- 오래 기록할수록 임시로 저장되는 그림 데이터 용량이 커집니다. 영상으로 내보내도 이 데이터는 지워지지 않으며, 용량을 줄이려면 "기록 초기화"를 눌러야 합니다 (단, 초기화하면 지금까지의 기록과 내보내기 이력이 모두 사라집니다).
