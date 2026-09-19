@@ -3,7 +3,7 @@ import manifest from "../../../manifest.json";
 // Alerts only — UXP plugins loaded outside Adobe Exchange have no sanctioned
 // way to replace their own running plugin folder, so this just points the
 // user at the GitHub release instead of attempting a self-update.
-const REPO = "kimkihwa/photoshop-timelapse";
+const REPO = "dimensionbuster/photoshop-timelapse";
 const RELEASES_API_URL = `https://api.github.com/repos/${REPO}/releases/latest`;
 
 export interface UpdateInfo {
