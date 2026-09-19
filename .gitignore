@@ -3,3 +3,4 @@ dist/
 *.log
 ffmpeg/*
 !ffmpeg/README.txt
+.gstack/
