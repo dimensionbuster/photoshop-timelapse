@@ -14,29 +14,39 @@ TypeScript + React(18) + esbuild. UI는 `src/ts/ui/`, PS/UXP를 직접 다루는
 
 세부 설계는 `C:\Users\kiamm\.claude\plans\photoshop-federated-codd.md` 참고.
 
-## 준비물 (직접 설치 필요)
+## 설치
+
+### 1. 준비물
 
 1. **Adobe UXP Developer Tool** — Creative Cloud 앱에서 검색 설치, 또는 `developer.adobe.com/photoshop/uxp`에서 다운로드.
-2. **ffmpeg.exe** — `ffmpeg/README.txt` 참고해서 `ffmpeg/ffmpeg.exe`에 배치.
+2. **ffmpeg.exe** — `ffmpeg/README.txt` 참고해서 `ffmpeg/ffmpeg.exe`에 배치 (저장소에는 포함 안 됨, `.gitignore` 처리됨).
 3. Node.js (이미 설치돼 있음: v22.21.1).
 
-## 빌드 & 로드
+### 2. 저장소 클론 & 빌드
 
 ```
+git clone https://github.com/kimkihwa/photoshop-timelapse.git
+cd photoshop-timelapse
 npm install
 npm run typecheck  # tsc --noEmit — 수정할 때마다 실행
 npm run build      # typecheck 통과 후 esbuild 번들 (dist/bundle.js)
-npm run watch       # esbuild --watch (타입체크는 안 됨, 저장 시 번들만 재생성)
 ```
 
 `photoshop`/`uxp` 모듈 타입: `photoshop`은 `@types/photoshop`(DefinitelyTyped), `uxp`는 공식 타입 패키지가 없어서 실제로 쓰는 범위만 `src/ts/types/uxp.d.ts`에 직접 선언.
 
-UXP Developer Tool에서:
+### 3. UXP Developer Tool에서 플러그인 로드
+
 1. "Add Plugin" → 이 폴더의 `manifest.json` 선택.
 2. Photoshop 실행 중인 상태에서 "Load".
 3. Photoshop 메뉴 Plugins > Timelapse 패널 열기.
 
-개발 중에는 `npm run watch` 켜두고 UDT의 "Watch" 옵션도 켜면 저장할 때마다 자동 리로드됨.
+### 4. 개발 모드
+
+```
+npm run watch  # esbuild --watch (타입체크는 안 됨, 저장 시 번들만 재생성)
+```
+
+`npm run watch` 켜두고 UDT의 "Watch" 옵션도 켜면 저장할 때마다 자동 리로드됨.
 
 ## 알려진 제약 (v1)
 
