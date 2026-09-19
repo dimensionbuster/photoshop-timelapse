@@ -44,8 +44,9 @@ jobs:
       - name: Package plugin
         if: steps.check_tag.outputs.exists == 'false'
         run: |
-          mkdir -p release/photoshop-timelapse
-          cp -r dist manifest.json index.html src release/photoshop-timelapse/
+          mkdir -p release/photoshop-timelapse/ffmpeg
+          cp -r dist manifest.json index.html src README.md release/photoshop-timelapse/
+          cp ffmpeg/README.txt release/photoshop-timelapse/ffmpeg/
           cd release && zip -r ../photoshop-timelapse-v${{ steps.version.outputs.version }}.zip photoshop-timelapse
 
       - name: Create GitHub Release
