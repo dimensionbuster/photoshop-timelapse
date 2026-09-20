@@ -78,8 +78,8 @@ export function App(): React.JSX.Element {
       : state.wallSeconds + (now - state.recordingStartedAt) / 1000;
   const liveIdleSeconds = Math.max(0, liveWallSeconds - liveSeconds);
 
-  const canStart = state.hasSavedDoc && state.status !== "recording";
-  const canStop = state.status === "recording";
+  const isRecording = state.status === "recording";
+  const canToggle = isRecording || state.hasSavedDoc;
   const canExport = state.frameCount > 0;
   const canReset = state.hasSavedDoc;
 
@@ -91,8 +91,14 @@ export function App(): React.JSX.Element {
     }
   }
 
-  function handleStop(): void {
-    controller.stop();
+  function handleToggle(): void {
+    if (isRecording) controller.stop();
+    else void handleStart();
+  }
+
+  async function handleResetTimer(): Promise<void> {
+    await controller.resetTimer();
+    setToast({ message: "타이머를 초기화했습니다.", isError: false });
   }
 
   async function handleExport(): Promise<void> {
@@ -181,11 +187,11 @@ export function App(): React.JSX.Element {
       </div>
 
       <div className="button-row">
-        <button id="btn-start" disabled={!canStart} onClick={() => void handleStart()}>
-          타임랩스 시작
+        <button id="btn-toggle" disabled={!canToggle} onClick={handleToggle}>
+          {isRecording ? "정지" : "타임랩스 시작"}
         </button>
-        <button id="btn-stop" disabled={!canStop} onClick={handleStop}>
-          정지
+        <button id="btn-reset-timer" disabled={!state.hasSavedDoc} onClick={() => void handleResetTimer()}>
+          타이머 초기화
         </button>
       </div>
       <div className="button-row">

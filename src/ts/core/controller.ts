@@ -1,5 +1,5 @@
 import { app } from "photoshop";
-import { computeDocKey, ensureMetaLoaded, saveMeta, fullReset } from "./storage";
+import { computeDocKey, ensureMetaLoaded, getCachedMeta, saveMeta, fullReset } from "./storage";
 import * as historyListener from "./history-listener";
 import * as captureQueue from "./capture-queue";
 import { exportToMp4, type ExportResult } from "./export-ffmpeg";
@@ -105,8 +105,23 @@ export async function refreshForActiveDocument(): Promise<void> {
     notify();
     return;
   }
-  currentDocKey = computeDocKey(info.docPath);
-  currentMeta = await ensureMetaLoaded(currentDocKey, info.docPath, info.docName);
+  const docKey = computeDocKey(info.docPath);
+  const wasCached = getCachedMeta(docKey) !== null;
+  currentDocKey = docKey;
+  currentMeta = await ensureMetaLoaded(docKey, info.docPath, info.docName);
+
+  if (currentMeta.status === "recording") {
+    // Freshly loaded from disk with status still "recording" means the last
+    // session ended mid-recording. The history listener is only registered by
+    // start(), so without this the clock and frame capture stayed dead while
+    // the wall-clock timer kept running off the stale recordingStartedAt.
+    if (!wasCached) {
+      currentMeta.lastEventTimestamp = null;
+      currentMeta.recordingStartedAt = Date.now(); // don't count the time the plugin was closed
+      await saveMeta(docKey, currentMeta);
+    }
+    historyListener.init(handleTick);
+  }
   notify();
 }
 
@@ -144,6 +159,18 @@ export async function exportVideo(): Promise<ExportResult> {
   const result = await exportToMp4(currentDocKey, currentMeta);
   notify();
   return result;
+}
+
+// Zero the clock / wall / idle displays without touching status, frames or
+// settings. Contrast with resetRecording(), which wipes the whole cache.
+export async function resetTimer(): Promise<void> {
+  if (!currentDocKey || !currentMeta) return;
+  currentMeta.accumulatedSeconds = 0;
+  currentMeta.wallSeconds = 0;
+  currentMeta.lastEventTimestamp = null;
+  currentMeta.recordingStartedAt = currentMeta.status === "recording" ? Date.now() : null;
+  await saveMeta(currentDocKey, currentMeta);
+  notify();
 }
 
 export async function resetRecording(): Promise<void> {
