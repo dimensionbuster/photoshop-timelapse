@@ -28,6 +28,10 @@ body {
   overflow-y: auto;
 }
 
+#root {
+  height: 100%;
+}
+
 #app {
   padding: 12px;
   display: flex;
@@ -35,6 +39,19 @@ body {
   gap: 10px;
   min-width: 0;
   max-width: 100%;
+}
+
+/* Only the playback view needs #app pinned to the panel's full height (so
+   #playback-image's flex:1 has real room to grow into). Applying that
+   height:100% unconditionally instead clips/overlaps the normal view's
+   content in UXP's webview when it's taller than the panel — the engine
+   doesn't scroll overflowing content the way a regular browser does — and
+   min-height:100% doesn't work as a substitute here: with no ancestor that
+   has a definite (non-min) height, the webview treats #app's min-height
+   percentage as unresolvable and drops it, leaving nothing for the preview
+   to grow into. So this stays scoped to the one view that needs it. */
+#app.app-fill {
+  height: 100%;
 }
 
 .update-banner {
@@ -82,14 +99,19 @@ body {
   padding: 8px 0;
 }
 
-.frame-row {
-  font-size: 11px;
-  color: #9a9a9a;
-}
-
+.frame-row,
 .time-stats {
   font-size: 11px;
   color: #9a9a9a;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 10px;
+}
+
+.frame-row span,
+.time-stats span {
+  white-space: nowrap;
 }
 
 .button-row {
@@ -201,6 +223,11 @@ button.danger:hover:not(:disabled) {
   flex-direction: column;
   gap: 6px;
   min-width: 0;
+  /* fills whatever room is left in the (now full-height) #app column, so
+     resizing the panel taller grows the preview instead of leaving it
+     stuck at its old fixed size. */
+  flex: 1;
+  min-height: 0;
 }
 
 #playback-image {
@@ -210,11 +237,15 @@ button.danger:hover:not(:disabled) {
   display: block;
   width: 100%;
   max-width: 100%;
-  /* fixed, not min-height: with an auto height the box resized to match
+  /* flex-sized (not height:auto): an auto height resized the box to match
      each frame's decoded intrinsic size, which read as the whole panel
      growing/shrinking (and the image itself appearing to flicker) on every
-     frame swap during playback. */
-  height: 200px;
+     frame swap during playback. flex:1 keeps the box's size dictated by
+     the layout, not the image, so it stays stable while also actually
+     using the panel's available height. min-height keeps it from
+     collapsing to nothing when the panel is short. */
+  flex: 1;
+  min-height: 120px;
   background: #1e1e1e;
   overflow: hidden;
   border-radius: 4px;

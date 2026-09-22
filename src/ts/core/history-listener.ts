@@ -68,6 +68,18 @@ function maybeFlush(docKey: string, meta: TimelapseMeta): void {
   if (framesSinceFlush >= FLUSH_EVERY_N_FRAMES || now - lastFlushAt >= FLUSH_EVERY_MS) {
     framesSinceFlush = 0;
     lastFlushAt = now;
+    // Roll the in-progress wall-clock segment into wallSeconds and rebase
+    // recordingStartedAt, same as stop() does. Without this, wallSeconds on
+    // disk only ever advances on an explicit stop(), while accumulatedSeconds
+    // above is flushed continuously — so a mid-session reload (which resets
+    // recordingStartedAt to "now" to avoid counting time the plugin was
+    // closed) throws away the wall time elapsed since the last stop() but
+    // keeps the real accumulatedSeconds, and 전체/논 시간 reset while 작업
+    // 비율 spikes past 100%.
+    if (meta.recordingStartedAt != null) {
+      meta.wallSeconds += (now - meta.recordingStartedAt) / 1000;
+      meta.recordingStartedAt = now;
+    }
     saveMeta(docKey, meta).catch((e) => console.error("[timelapse] meta flush failed", e));
   }
 }

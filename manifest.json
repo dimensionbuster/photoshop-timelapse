@@ -18,6 +18,10 @@
       "minimumSize": {
         "width": 240,
         "height": 360
+      },
+      "maximumSize": {
+        "width": 2000,
+        "height": 2000
       }
     }
   ],

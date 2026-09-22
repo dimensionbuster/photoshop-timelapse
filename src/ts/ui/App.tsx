@@ -72,11 +72,23 @@ export function App(): React.JSX.Element {
 
   // Wall-clock time: ticks purely off timestamps, so it's correct regardless
   // of whether Photoshop has focus or the panel was actively re-rendering.
-  const liveWallSeconds =
+  const rawWallSeconds =
     state.status !== "recording" || state.recordingStartedAt == null
       ? state.wallSeconds
       : state.wallSeconds + (now - state.recordingStartedAt) / 1000;
+  // Wall time can never be less than work time (work is a subset of wall) —
+  // this is a logical floor, not just a display nicety. wallSeconds is only
+  // persisted periodically (see history-listener.ts's maybeFlush), so a
+  // reload mid-recording can momentarily load a stale, lower wallSeconds off
+  // disk than the accumulatedSeconds it's supposed to contain. Clamping here
+  // keeps the displayed numbers self-consistent even during that window,
+  // instead of briefly showing 전체 below 기록 중 시계.
+  const liveWallSeconds = Math.max(rawWallSeconds, liveSeconds);
   const liveIdleSeconds = Math.max(0, liveWallSeconds - liveSeconds);
+  // Clamped defensively: wallSeconds and accumulatedSeconds are flushed to
+  // disk at different points (see history-listener.ts's maybeFlush), so a
+  // narrow window can still see work time transiently exceed wall time.
+  const workPercent = liveWallSeconds > 0 ? Math.min(100, Math.round((liveSeconds / liveWallSeconds) * 100)) : 0;
 
   const isRecording = state.status === "recording";
   const canToggle = isRecording || state.hasSavedDoc;
@@ -133,7 +145,7 @@ export function App(): React.JSX.Element {
     // of controls was what pushed panel height past the UXP window's fixed
     // frame (no auto-resize, no scroll jank we want to rely on).
     return (
-      <div id="app">
+      <div id="app" className="app-fill">
         <PlaybackPanel
           onClose={() => setShowPlayback(false)}
           onNoFrames={(reason) => {
@@ -180,10 +192,14 @@ export function App(): React.JSX.Element {
         {secondsToHHMMSS(liveSeconds)}
       </div>
       <div className="time-stats">
-        전체 {secondsToHHMMSS(liveWallSeconds)} · 논 시간 {secondsToHHMMSS(liveIdleSeconds)}
+        <span>전체 {secondsToHHMMSS(liveWallSeconds)}</span>
+        <span>논 시간 {secondsToHHMMSS(liveIdleSeconds)}</span>
       </div>
       <div className="frame-row">
-        프레임: <span id="frame-count">{state.frameCount}</span>
+        <span>
+          프레임: <span id="frame-count">{state.frameCount}</span>
+        </span>
+        <span>작업 시간 비율: {String(workPercent).padStart(2, "0")}%</span>
       </div>
 
       <div className="button-row">
