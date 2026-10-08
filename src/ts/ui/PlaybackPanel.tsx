@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as controller from "../core/controller";
 import type { PlaybackSession } from "../core/playback";
+import { frameRect, outputCanvas } from "../core/frame-geometry";
 
 const PLAY_INTERVAL_MS = 1000 / 12;
 const LOAD_TIMEOUT_MS = 400;
@@ -57,12 +58,34 @@ export function PlaybackPanel({ onClose, onNoFrames, onError }: Props): React.JS
   const timerRef = useRef<number | null>(null);
   const nextLoadTokenRef = useRef(0);
   const slotsRef = useRef<Slot[]>(Array.from({ length: POOL_SIZE }, makeSlot));
+  const containerRef = useRef<HTMLDivElement | null>(null);
 
   const [visibleSlot, setVisibleSlot] = useState(0);
   const [count, setCount] = useState(0);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [ready, setReady] = useState(false);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
+
+  // Track the preview area's size so the stage (latest frame's aspect) can be
+  // fitted inside it; frames are placed on that stage in % so they stay
+  // aligned at any panel size.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const measure = (): void => {
+      const r = el.getBoundingClientRect();
+      setBox((prev) => (prev && prev.w === r.width && prev.h === r.height ? prev : { w: r.width, h: r.height }));
+    };
+    measure();
+    window.addEventListener("resize", measure);
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    ro?.observe(el);
+    return () => {
+      window.removeEventListener("resize", measure);
+      ro?.disconnect();
+    };
+  }, [ready]);
 
   useEffect(() => {
     let cancelled = false;
@@ -95,6 +118,29 @@ export function PlaybackPanel({ onClose, onNoFrames, onError }: Props): React.JS
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Places the <img> on the stage at its frame's position relative to the
+  // latest frame (crop = stage overflow hidden, pad = white stage background).
+  // Untracked recordings keep the old contain-fit behavior.
+  function applyGeometry(el: HTMLImageElement, frameIndex: number): void {
+    const infos = sessionRef.current?.frameInfos() ?? [];
+    const info = infos[frameIndex];
+    const canvas = outputCanvas(infos);
+    const rect = info ? frameRect(info, infos) : null;
+    if (!canvas || !rect) {
+      el.style.left = "0";
+      el.style.top = "0";
+      el.style.width = "100%";
+      el.style.height = "100%";
+      el.style.objectFit = "contain";
+      return;
+    }
+    el.style.left = `${(rect.x / canvas.w) * 100}%`;
+    el.style.top = `${(rect.y / canvas.h) * 100}%`;
+    el.style.width = `${(rect.w / canvas.w) * 100}%`;
+    el.style.height = `${(rect.h / canvas.h) * 100}%`;
+    el.style.objectFit = "fill";
+  }
+
   // Starts loading `frameIndex` into `slot`. Reads the frame *before*
   // touching slot.el (matching the original two-buffer code's ordering) so
   // the very first call — made synchronously on mount, before React has
@@ -112,6 +158,7 @@ export function PlaybackPanel({ onClose, onNoFrames, onError }: Props): React.JS
       if (!dataUrl || slot.loadToken !== token) return;
       const el = slot.el;
       if (!el) return;
+      applyGeometry(el, frameIndex);
       await loadInto(el, dataUrl);
     })()
       .catch((e) => onError(e))
@@ -190,9 +237,28 @@ export function PlaybackPanel({ onClose, onNoFrames, onError }: Props): React.JS
 
   if (!ready) return null;
 
+  const infos = sessionRef.current?.frameInfos() ?? [];
+  const canvas = outputCanvas(infos);
+  let stageStyle: React.CSSProperties = { position: "absolute", inset: 0 };
+  if (canvas && box && box.w > 0 && box.h > 0) {
+    const fit = Math.min(box.w / canvas.w, box.h / canvas.h);
+    const w = canvas.w * fit;
+    const h = canvas.h * fit;
+    stageStyle = {
+      position: "absolute",
+      left: (box.w - w) / 2,
+      top: (box.h - h) / 2,
+      width: w,
+      height: h,
+      overflow: "hidden",
+      background: "#ffffff",
+    };
+  }
+
   const layerStyle = (visible: boolean): React.CSSProperties => ({
     position: "absolute",
-    inset: 0,
+    left: 0,
+    top: 0,
     width: "100%",
     height: "100%",
     objectFit: "contain",
@@ -201,7 +267,8 @@ export function PlaybackPanel({ onClose, onNoFrames, onError }: Props): React.JS
 
   return (
     <div id="playback-section">
-      <div id="playback-image">
+      <div id="playback-image" ref={containerRef}>
+        <div style={stageStyle}>
         {slotsRef.current.map((_, i) => (
           <img
             key={i}
@@ -213,6 +280,7 @@ export function PlaybackPanel({ onClose, onNoFrames, onError }: Props): React.JS
             style={layerStyle(i === visibleSlot)}
           />
         ))}
+        </div>
       </div>
       <div className="playback-index">
         {index + 1} / {count}

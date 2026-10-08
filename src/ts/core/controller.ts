@@ -181,5 +181,5 @@ export async function resetRecording(): Promise<void> {
 
 export function openPlayback(): PlaybackSession | null {
   if (!currentDocKey || !currentMeta) return null;
-  return createPlaybackSession(currentDocKey, currentMeta.frameGeneration);
+  return createPlaybackSession(currentDocKey, currentMeta.frameGeneration, currentMeta.frames);
 }
