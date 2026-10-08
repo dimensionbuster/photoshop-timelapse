@@ -14,6 +14,16 @@ export interface ExportRecord {
   outputPath: string;
 }
 
+// Per-frame geometry. w/h = JPEG pixel size; ox/oy = position of the frame's
+// top-left in a global content coordinate space (capture px, first frame at
+// 0,0). Canvas-size changes shift ox/oy so content stays put across frames.
+export interface FrameInfo {
+  w: number;
+  h: number;
+  ox: number;
+  oy: number;
+}
+
 export interface TimelapseMeta {
   docPath: string;
   docName: string;
@@ -39,6 +49,12 @@ export interface TimelapseMeta {
   // (capture every event, exactly like before this field existed).
   captureStride: number;
   eventsSinceLastCapture: number;
+  // capture px per document px, fixed at the first capture so a canvas-size
+  // change never rescales content. null until the first frame.
+  captureScale: number | null;
+  // Parallel to frame files (frames[i] describes frame i+1). Empty for
+  // recordings made before this field existed.
+  frames: FrameInfo[];
 }
 
 export interface UiState {

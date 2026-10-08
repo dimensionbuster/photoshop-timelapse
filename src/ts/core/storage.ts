@@ -43,6 +43,8 @@ function defaultMeta(docPath: string, docName: string): TimelapseMeta {
     frameGeneration: 0,
     captureStride: 1,
     eventsSinceLastCapture: 0,
+    captureScale: null,
+    frames: [],
   };
 }
 
@@ -136,6 +138,8 @@ async function loadMetaFromDisk(docKey: string, docPath: string, docName: string
     parsed.eventsSinceLastCapture = parsed.eventsSinceLastCapture ?? 0;
     parsed.recordingStartedAt = parsed.recordingStartedAt ?? null;
     parsed.wallSeconds = parsed.wallSeconds ?? 0;
+    parsed.captureScale = parsed.captureScale ?? null;
+    parsed.frames = parsed.frames ?? [];
     const meta = parsed as TimelapseMeta;
     await gcStaleGenerations(docKey, meta.frameGeneration);
     return meta;
@@ -176,16 +180,14 @@ export async function listFrameEntries(docKey: string, generation: number): Prom
 // Evenly-spaced subset of `frames` so the result has at most `budget`
 // entries, always including the first and last frame. Used at export time to
 // enforce MAX_EXPORT_SECONDS regardless of sampling mode (see export-ffmpeg.ts).
-export function selectExportFrames(frames: UxpFileEntry[], budget: number): UxpFileEntry[] {
-  const n = frames.length;
-  if (n <= budget || budget <= 1) return frames;
-  const picks: UxpFileEntry[] = [];
+export function selectExportIndices(n: number, budget: number): number[] {
+  if (n <= budget || budget <= 1) return Array.from({ length: n }, (_, i) => i);
+  const picks: number[] = [];
   let lastIndex = -1;
   for (let i = 0; i < budget; i++) {
     const srcIndex = Math.round((i * (n - 1)) / (budget - 1));
     if (srcIndex === lastIndex) continue; // guards float-rounding collisions when n is only slightly > budget
-    const frame = frames[srcIndex];
-    if (frame) picks.push(frame);
+    picks.push(srcIndex);
     lastIndex = srcIndex;
   }
   return picks;
@@ -231,6 +233,8 @@ export async function fullReset(docKey: string, meta: TimelapseMeta): Promise<Ti
   meta.frameGeneration = 0;
   meta.captureStride = 1;
   meta.eventsSinceLastCapture = 0;
+  meta.captureScale = null;
+  meta.frames = [];
   await saveMeta(docKey, meta);
   return meta;
 }

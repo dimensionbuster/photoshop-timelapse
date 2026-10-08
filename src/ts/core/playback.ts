@@ -1,6 +1,7 @@
 import { storage as uxpStorage } from "uxp";
 import type { UxpFileEntry } from "uxp";
 import { listFrameEntries } from "./storage";
+import type { FrameInfo } from "./types";
 
 const LRU_LIMIT = 20;
 
@@ -17,15 +18,20 @@ export interface PlaybackSession {
   load(): Promise<number>;
   frameAt(index: number): Promise<string | null>;
   frameCount(): number;
+  // Geometry per frame (same order as frameAt); empty when untracked.
+  frameInfos(): FrameInfo[];
 }
 
-export function createPlaybackSession(docKey: string, frameGeneration: number): PlaybackSession {
+export function createPlaybackSession(docKey: string, frameGeneration: number, metaFrames: FrameInfo[]): PlaybackSession {
   let entries: UxpFileEntry[] = [];
+  let infos: FrameInfo[] = [];
   const cache = new Map<number, string>(); // index -> data URL, small LRU so scrubbing stays smooth
 
   async function load(): Promise<number> {
     entries = await listFrameEntries(docKey, frameGeneration);
     cache.clear();
+    // snapshot so later captures can't desync from the entries list
+    infos = metaFrames.length === entries.length ? metaFrames.slice() : [];
     return entries.length;
   }
 
@@ -51,5 +57,9 @@ export function createPlaybackSession(docKey: string, frameGeneration: number): 
     return entries.length;
   }
 
-  return { load, frameAt, frameCount };
+  function frameInfos(): FrameInfo[] {
+    return infos;
+  }
+
+  return { load, frameAt, frameCount, frameInfos };
 }
